@@ -1,5 +1,8 @@
 package net.jcm.modulation.blocks;
 
+import net.jcm.modulation.api.signal.SignalEmission;
+import net.jcm.modulation.impl.RadioManager;
+import net.jcm.modulation.util.Utils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -16,8 +19,14 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class TransmitBlock extends DirectionalBlock {
+
+    private static final int FREQUENCY = 50;
+    private static final float POWER = 20f;
+    private static final int TICK_INTERVAL = 1;
+
     public TransmitBlock(Properties p_52591_) {
         super(p_52591_);
         this.registerDefaultState(this.defaultBlockState()
@@ -55,12 +64,20 @@ public class TransmitBlock extends DirectionalBlock {
 
     @Override
     public void tick(BlockState pState, @NotNull ServerLevel level, @NotNull BlockPos pPos, @NotNull RandomSource pRandom) {
-        ByteBuffer buffer = ByteBuffer.allocate(20);
-        buffer.putChar('v');
-        String string = "Meow? Meow Meow Meow!";
-//        WorldRadioField.getInstance(level).queueEmit(new SignalEmission(pPos.getCenter(), 50, Utils.hammingEncodeBytes(string.getBytes(StandardCharsets.UTF_8)),20 , pState.getValue(FACING).step()));
-        System.out.println("ssss: " + buffer);
-        level.scheduleTick(pPos, this, 10);
+        String message = "Meow? Meow Meow Meow!";
+        byte[] encoded = Utils.hammingEncodeBytes(message.getBytes(StandardCharsets.UTF_8));
+
+        RadioManager.getInstance()
+                .getOrCreateField(level)
+                .queueEmit(new SignalEmission(
+                        pPos.getCenter(),
+                        FREQUENCY,
+                        encoded,
+                        POWER,
+                        pState.getValue(FACING).step()
+                ));
+
+        level.scheduleTick(pPos, this, TICK_INTERVAL);
         super.tick(pState, level, pPos, pRandom);
     }
 }

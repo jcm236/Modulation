@@ -5,6 +5,7 @@ import net.jcm.modulation.api.signal.SignalSample;
 import net.jcm.modulation.api.tick.IBlockRadioTickSubscriber;
 import net.jcm.modulation.api.tick.IEntityRadioSubscriber;
 import net.jcm.modulation.api.tick.IRadioTickSubscriber;
+import net.jcm.modulation.impl.WorldRadioField;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -49,6 +50,8 @@ public abstract class AbstractRadioField {
 
     public abstract void emit(SignalEmission emission);
 
+    public abstract List<WorldRadioField.EmissionMetadata> sampleRaw(Vec3 position, int frequency, float bandwidth, Vector3f direction);
+
     public abstract SignalSample sample(Vec3 position, int frequency, float bandwidth, Vector3f direction);
 
     public int getTicks() {
@@ -92,35 +95,9 @@ public abstract class AbstractRadioField {
 
 
     public void tick(){
-        System.out.println("rf preTick fr");
         this.preTick();
         this.reset();
         this.postTick();
+        time.incrementAndGet();
     }
-
-//    @Mod.EventBusSubscriber
-//    public static class EventHandler {
-//        @SubscribeEvent
-//        public static void serverTick(TickEvent.LevelTickEvent event) {
-//            if (event.phase == TickEvent.Phase.END) {
-//                if(event.level instanceof ServerLevel serverLevel) {
-//                    AbstractRadioField.getInstance(serverLevel).preTick(serverLevel);
-//                }
-//            }
-//        }
-//
-//        @SubscribeEvent
-//        public static void playerTick(TickEvent.PlayerTickEvent event) {
-//            if(event.player instanceof ServerPlayer serverPlayer) {
-//                AbstractRadioField.getInstance(serverPlayer.serverLevel()).addEntitySubscriber(serverPlayer, (pos, level, field) -> {
-//                    SignalSample sample =  field.sample(event.player.getPosition(1), 50, 50, null);
-//                    System.out.println("rec");
-//                    if (sample != null) {
-//                        event.player.displayClientMessage(Component.literal(new String(Utils.hammingDecodeBytes(sample.data()), StandardCharsets.UTF_8)), false);
-//                    }
-//                });
-//            }
-//        }
-//
-//    }
 }

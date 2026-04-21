@@ -33,13 +33,13 @@ public class WorldRadioField extends AbstractRadioField {
     }
 
     @Override
-    public SignalSample sample(Vec3 position, int frequency, float bandwidth, Vector3f direction) {
+    public List<EmissionMetadata> sampleRaw(Vec3 position, int frequency, float bandwidth, Vector3f direction) {
         SectionPos receiverPos = SectionPos.of(position);
 
         Stream.Builder<SignalEmission> emissionsInRange = Stream.builder();
         for (SignalEmission emission : this.emissions.keySet()) {
             if (emissions.get(emission).coversSection(receiverPos)) {
-                    emissionsInRange.add(emission);
+                emissionsInRange.add(emission);
             }
         }
 
@@ -72,8 +72,12 @@ public class WorldRadioField extends AbstractRadioField {
                 .filter((e) -> e.getStrength() > MIN_SIGNAL);
         List<EmissionMetadata> listified = filtered.toList();
         System.out.println(listified);
-        return Utils.mix(listified, frequency, time.get());
+        return listified;
+    }
 
+    @Override
+    public SignalSample sample(Vec3 position, int frequency, float bandwidth, Vector3f direction) {
+        return Utils.mix(this.sampleRaw(position, frequency, bandwidth, direction), frequency, time.get());
     }
 
     @Override
