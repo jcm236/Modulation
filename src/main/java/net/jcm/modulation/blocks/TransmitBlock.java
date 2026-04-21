@@ -1,13 +1,9 @@
 package net.jcm.modulation.blocks;
 
-import net.jcm.modulation.api.AbstractRadioField;
-import net.jcm.modulation.api.SignalEmission;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
@@ -17,11 +13,9 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 public class TransmitBlock extends DirectionalBlock {
     public TransmitBlock(Properties p_52591_) {
@@ -64,7 +58,7 @@ public class TransmitBlock extends DirectionalBlock {
         ByteBuffer buffer = ByteBuffer.allocate(20);
         buffer.putChar('v');
         String string = "Meow? Meow Meow Meow!";
-        AbstractRadioField.getInstance(level).queueEmit(new SignalEmission(pPos.getCenter(), 50, string.getBytes(StandardCharsets.UTF_8),20 , pState.getValue(FACING).step()));
+//        WorldRadioField.getInstance(level).queueEmit(new SignalEmission(pPos.getCenter(), 50, Utils.hammingEncodeBytes(string.getBytes(StandardCharsets.UTF_8)),20 , pState.getValue(FACING).step()));
         System.out.println("ssss: " + buffer);
         level.scheduleTick(pPos, this, 10);
         super.tick(pState, level, pPos, pRandom);

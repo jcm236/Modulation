@@ -2,30 +2,23 @@ package net.jcm.modulation.impl;
 
 import net.jcm.modulation.api.AbstractRadioField;
 import net.jcm.modulation.util.SectionCube;
-import net.jcm.modulation.api.SignalEmission;
-import net.jcm.modulation.api.SignalSample;
+import net.jcm.modulation.api.signal.SignalEmission;
+import net.jcm.modulation.api.signal.SignalSample;
 import net.jcm.modulation.util.Utils;
 import net.minecraft.core.SectionPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 public class WorldRadioField extends AbstractRadioField {
 
     public static final float MIN_SIGNAL = 0.01f;
-    protected Map<SignalEmission, SectionCube> emissions = new HashMap<>();
-
-    protected Map<SignalEmission, SectionCube> queued = new HashMap<>();
-
-    public WorldRadioField(CompoundTag tag) {}
+    protected ConcurrentHashMap<SignalEmission, SectionCube> emissions = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<SignalEmission, SectionCube> queued = new ConcurrentHashMap<>();
 
     public WorldRadioField() {}
 
@@ -79,7 +72,7 @@ public class WorldRadioField extends AbstractRadioField {
                 .filter((e) -> e.getStrength() > MIN_SIGNAL);
         List<EmissionMetadata> listified = filtered.toList();
         System.out.println(listified);
-        return Utils.mix(listified, frequency);
+        return Utils.mix(listified, frequency, time.get());
 
     }
 
@@ -89,8 +82,8 @@ public class WorldRadioField extends AbstractRadioField {
     }
 
     @Override
-    protected void postTick(ServerLevel level) {
-        super.postTick(level);
+    protected void postTick() {
+        super.postTick();
         this.emissions.putAll(queued);
         this.queued.clear();
     }

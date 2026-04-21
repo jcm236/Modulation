@@ -1,4 +1,4 @@
-package net.jcm.modulation.api;
+package net.jcm.modulation.api.signal;
 
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
