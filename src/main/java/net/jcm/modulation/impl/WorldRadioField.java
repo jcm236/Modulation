@@ -10,6 +10,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -35,44 +36,36 @@ public class WorldRadioField extends AbstractRadioField {
     @Override
     public List<EmissionMetadata> sampleRaw(Vec3 position, int frequency, float bandwidth, Vector3f direction) {
         SectionPos receiverPos = SectionPos.of(position);
+        List<EmissionMetadata> result = new ArrayList<>();
 
-        Stream.Builder<SignalEmission> emissionsInRange = Stream.builder();
-        for (SignalEmission emission : this.emissions.keySet()) {
-            if (emissions.get(emission).coversSection(receiverPos)) {
-                emissionsInRange.add(emission);
+        for (var entry : this.emissions.entrySet()) {
+            SignalEmission emission = entry.getKey();
+
+            if (!entry.getValue().coversSection(receiverPos)) continue;
+            if (Math.abs(emission.frequency() - frequency) > bandwidth) continue;
+
+            EmissionMetadata meta = new EmissionMetadata(emission, position);
+
+            // Apply transmitter directional gain
+            if (emission.direction() != null) {
+                Vector3f dirToReceiver = position.subtract(emission.position()).normalize().toVector3f();
+                float alignment = Math.max(emission.direction().dot(dirToReceiver), 0.0f);
+                meta.applyStrengthGain(alignment * alignment);
+            }
+
+            // Apply receiver directional gain
+            if (direction != null) {
+                Vector3f dirFromReceiver = emission.position().subtract(position).normalize().toVector3f();
+                float alignment = Math.max(direction.dot(dirFromReceiver), 0.0f);
+                meta.applyStrengthGain(alignment * alignment);
+            }
+
+            if (meta.getStrength() > MIN_SIGNAL) {
+                result.add(meta);
             }
         }
 
-        Stream<EmissionMetadata> filtered = emissionsInRange
-                .build()
-                .filter((e) -> Math.abs(e.frequency() - frequency) <= bandwidth)
-                .map((e) -> new EmissionMetadata(e, position))
-                .map((e) -> {
-                    if (e.emission.direction() == null) {
-                        return e;
-                    }
-
-                    Vector3f dirToReceiver = position.subtract(e.emission.position()).normalize().toVector3f();
-                    float alignment = Math.max(e.emission.direction().dot(dirToReceiver), 0.0f);
-                    float dirGain = alignment * alignment;
-                    e.applyStrengthGain(dirGain);
-                    return e;
-                })
-                .map((e) -> {
-                    if (direction == null) {
-                        return e;
-                    }
-
-                    Vector3f dirFromReceiver = e.emission.position().subtract(position).normalize().toVector3f();
-                    float alignment = Math.max(direction.dot(dirFromReceiver), 0.0f);
-                    float dirGain = alignment * alignment;
-                    e.applyStrengthGain(dirGain);
-                    return e;
-                })
-                .filter((e) -> e.getStrength() > MIN_SIGNAL);
-        List<EmissionMetadata> listified = filtered.toList();
-        System.out.println(listified);
-        return listified;
+        return result;
     }
 
     @Override

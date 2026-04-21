@@ -27,10 +27,16 @@ public class ServerEvents {
 
     public static final int RADIO_TPS = 100;
 
+    private static void ensureInit() {
+        if (RadioManager.getInstance() == null) {
+            RadioManager.init(new ThreadedRadioFieldManager(RADIO_TPS));
+            LOGGER.info("[Modulation] RadioManager initialized with ThreadedRadioFieldManager at {} ticks/sec", RADIO_TPS);
+        }
+    }
+
     @SubscribeEvent
     public static void onServerStarting(ServerStartingEvent event) {
-        RadioManager.init(new ThreadedRadioFieldManager(RADIO_TPS));
-        LOGGER.info("[Modulation] RadioManager initialized with ThreadedRadioFieldManager at {} ticks/sec", RADIO_TPS);
+        ensureInit();
     }
 
     @SubscribeEvent
@@ -42,6 +48,8 @@ public class ServerEvents {
     @SubscribeEvent
     public static void onLevelLoad(LevelEvent.Load event) {
         if (event.getLevel() instanceof ServerLevel level) {
+            ensureInit();
+
             RadioManager.getInstance().getOrCreateField(level);
             LOGGER.info("[Modulation] Radio field created for level: {}", level.dimension().location());
         }
