@@ -41,7 +41,7 @@ public class ServerEvents {
 
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
-        RadioManager.getInstance().shutdown();
+        RadioManager.shutdown();
         LOGGER.info("[Modulation] RadioManager shut down");
     }
 

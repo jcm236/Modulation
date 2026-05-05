@@ -10,6 +10,11 @@ public class RadioManager {
         INSTANCE.start();
     }
 
+    public static void shutdown() {
+        INSTANCE.shutdown();
+        INSTANCE = null;
+    }
+
     public static IRadioFieldManager getInstance() {
         return INSTANCE;
     }
