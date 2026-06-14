@@ -7,4 +7,4 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
-public record SignalEmission(Vec3 position, int frequency, byte[] data, float power, @Nullable Vector3f direction) {}
+public record SignalEmission(Vec3 position, int frequency, byte[] data, float powerDbm, @Nullable Vector3f direction) {}

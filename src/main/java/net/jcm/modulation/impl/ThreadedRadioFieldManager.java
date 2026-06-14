@@ -32,7 +32,7 @@ public class ThreadedRadioFieldManager implements IRadioFieldManager {
 
     @Override
     public WorldRadioField getOrCreateField(ServerLevel level) {
-        return this.fields.computeIfAbsent(level, k -> new WorldRadioField());
+        return this.fields.computeIfAbsent(level, k -> new WorldRadioField(k.dimension()));
     }
 
     @Override

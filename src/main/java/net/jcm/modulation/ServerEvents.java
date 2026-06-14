@@ -80,7 +80,7 @@ public class ServerEvents {
                         lastMessageTick = field.getTicks();
 
                         Vec3 pos = serverPlayer.position();
-                        SignalSample sample = field.sample(pos, 50, 50, null);
+                        SignalSample sample = field.sampleAndMix(pos, 50, 50, null);
                         if (sample == null) return;
 
                         String text = new String(

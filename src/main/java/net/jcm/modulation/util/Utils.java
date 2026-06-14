@@ -3,75 +3,59 @@ package net.jcm.modulation.util;
 import net.jcm.modulation.api.signal.SignalSample;
 import net.jcm.modulation.impl.WorldRadioField;
 import net.minecraft.util.Mth;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Random;
 
 public class Utils {
-    public static SignalSample mix(
-            List<WorldRadioField.EmissionMetadata> emissions,
-            int tunedFrequency,
-            long gameTime
-    ) {
-        ByteArrayOutputStream mixed = new ByteArrayOutputStream();
-        float totalStrength = 0f;
+    private static final float NOISE_FIGURE_DB = 6f;
 
-        for (WorldRadioField.EmissionMetadata e : emissions) {
-            double dist = Math.sqrt(e.getDistanceSq());
+    public static float thermalNoise(int bandwidthHz) {
+        return -174f + (float)(10 * Math.log10(bandwidthHz));
+    }
 
-            float freqDelta = Math.abs(e.getEmission().frequency() - tunedFrequency);
-            float frequencyPenalty = freqDelta * (float) dist * 0.001f;
+    public static SignalSample mix(List<WorldRadioField.EmissionMetadata> emissions, long gameTime, int bandwidth) {
+        if (emissions.isEmpty()) return null;
 
-            double usableStrength = e.getStrength() - frequencyPenalty;
-            if (usableStrength <= 0.0)
-                continue;
+        // Capture effect: strongest signal wins
+        WorldRadioField.EmissionMetadata dominant = emissions.get(0);
+        for (WorldRadioField.EmissionMetadata e : emissions)
+            if (e.getStrengthDbm() > dominant.getStrengthDbm()) dominant = e;
 
-            // --- Noise model ---
-            float distanceNoise = (float) Math.min(1.0, dist * 0.02f);
-            float detuneNoise   = Math.min(1.0f, freqDelta * 0.002f);
-            float noiseScale    = (distanceNoise + detuneNoise) * 0.5f;
+        float rxDbm = dominant.getStrengthDbm();
 
-            // Strong signal suppresses noise
-            float snrSuppression = (float) Math.min(1.0, usableStrength);
-            noiseScale *= (1.0f - snrSuppression);
+        float noiseFloor = thermalNoise(bandwidth) + NOISE_FIGURE_DB;
 
-            // Per-preTick deterministic randomness
-            long seed =
-                    gameTime * 31L ^
-                            e.getEmission().hashCode() ^
-                            Double.doubleToLongBits(e.getDistanceSq());
+        if (rxDbm < noiseFloor) return null;
 
-            Random rng = new Random(seed);
+        float snrDb = rxDbm - noiseFloor;
+        ByteArrayOutputStream out = noisify(gameTime, snrDb, dominant);
 
-            byte[] data = e.getEmission().data();
-            for (int i = 0; i < data.length; i++) {
-                int clean = (int) (data[i] * usableStrength);
-                int sample = clean;
+        return new SignalSample(out.toByteArray(), rxDbm);
+    }
 
-                // Burst noise: not every byte
-                if (rng.nextFloat() < noiseScale) {
-                    int noise = (int) (
-                            (rng.nextFloat() - 0.5f) * 16f * noiseScale
-                    );
-                    noise = Mth.clamp(noise, -6, 6);
-                    sample += noise;
-                }
+    private static @NotNull ByteArrayOutputStream noisify(long gameTime, float snrDb, WorldRadioField.EmissionMetadata dominant) {
+        float noiseScale = Mth.clamp(1.0f - (snrDb / 20f), 0f, 1f);
 
-                sample = Mth.clamp(sample, -128, 127);
-                mixed.write(sample);
+        long seed = gameTime * 31L
+                ^ dominant.getEmission().hashCode()
+                ^ Double.doubleToLongBits(dominant.getDistMetres());
+        Random rng = new Random(seed);
+
+        byte[] raw = dominant.getEmission().data();
+        ByteArrayOutputStream out = new ByteArrayOutputStream(raw.length);
+
+        for (byte b : raw) {
+            if (noiseScale > 0f && rng.nextFloat() < noiseScale) {
+                int noise = (int) ((rng.nextFloat() - 0.5f) * 255f * noiseScale);
+                out.write(Mth.clamp(b + noise, -128, 127));
+            } else {
+                out.write(b);
             }
-
-            totalStrength += usableStrength;
         }
-
-        if (totalStrength <= 0f)
-            return null;
-
-        return new SignalSample(
-                mixed.toByteArray(),
-                totalStrength
-        );
+        return out;
     }
 
     public static byte hammingEncodeNibble(int data) {

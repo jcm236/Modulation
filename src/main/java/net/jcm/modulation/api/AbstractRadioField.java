@@ -7,6 +7,8 @@ import net.jcm.modulation.api.tick.IEntityRadioSubscriber;
 import net.jcm.modulation.api.tick.IRadioTickSubscriber;
 import net.jcm.modulation.impl.WorldRadioField;
 import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
@@ -17,10 +19,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class AbstractRadioField {
 
     protected final AtomicInteger time = new AtomicInteger(0);
-
+    protected final ResourceKey<Level> level;
     protected final ConcurrentHashMap<UUID, IEntityRadioSubscriber> entityRadioSubscribers = new ConcurrentHashMap<>();
     protected final ConcurrentHashMap<Vec3i, IBlockRadioTickSubscriber> blockRadioSubscribers = new ConcurrentHashMap<>();
     protected final Set<IRadioTickSubscriber> tickSubscribers = ConcurrentHashMap.newKeySet();
+
+    protected AbstractRadioField(ResourceKey<Level> level) {
+        this.level = level;
+    }
 
     public abstract void queueEmit(SignalEmission emission);
 
@@ -50,9 +56,9 @@ public abstract class AbstractRadioField {
 
     public abstract void emit(SignalEmission emission);
 
-    public abstract List<WorldRadioField.EmissionMetadata> sampleRaw(Vec3 position, int frequency, float bandwidth, Vector3f direction);
+    public abstract List<WorldRadioField.EmissionMetadata> sampleRaw(Vec3 position, int frequency, int bandwidth, Vector3f direction);
 
-    public abstract SignalSample sample(Vec3 position, int frequency, float bandwidth, Vector3f direction);
+    public abstract SignalSample sampleAndMix(Vec3 position, int frequency, int bandwidth, Vector3f direction);
 
     public int getTicks() {
         return time.get();
