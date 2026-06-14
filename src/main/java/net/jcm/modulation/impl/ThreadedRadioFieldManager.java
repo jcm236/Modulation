@@ -2,6 +2,7 @@ package net.jcm.modulation.impl;
 
 import com.mojang.logging.LogUtils;
 import net.jcm.modulation.api.IRadioFieldManager;
+import net.jcm.modulation.attenuation.MaterialGrid;
 import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 

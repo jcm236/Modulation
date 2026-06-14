@@ -23,8 +23,8 @@ import java.nio.charset.StandardCharsets;
 
 public class TransmitBlock extends DirectionalBlock {
 
-    private static final int FREQUENCY = 50;
-    private static final float POWER = 20f;
+    private static final int FREQUENCY = 433_000_000; // 433 MHz (common ISM band for radios)
+    private static final float POWER = 10f;            // 10 dBm = 10mW
     private static final int TICK_INTERVAL = 1;
 
     public TransmitBlock(Properties p_52591_) {

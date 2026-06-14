@@ -41,7 +41,7 @@ public class WorldRadioField extends AbstractRadioField {
     @Override
     public List<EmissionMetadata> sampleRaw(Vec3 position, int frequency, int bandwidth, Vector3f direction) {
         SectionPos receiverPos = SectionPos.of(position);
-        MaterialGrid grid = MaterialGrid.get(this.level);
+        MaterialGrid grid = MaterialGrid.getInstance(this.level);
         List<EmissionMetadata> result = new ArrayList<>();
 
         for (var entry : this.emissions.entrySet()) {
@@ -92,7 +92,7 @@ public class WorldRadioField extends AbstractRadioField {
 
     @Override
     public SignalSample sampleAndMix(Vec3 position, int frequency, int bandwidth, Vector3f direction) {
-        return Utils.mix(this.sampleRaw(position, frequency, bandwidth, direction), bandwidth, time.get());
+        return Utils.mix(this.sampleRaw(position, frequency, bandwidth, direction), time.get(), bandwidth);
     }
 
     @Override

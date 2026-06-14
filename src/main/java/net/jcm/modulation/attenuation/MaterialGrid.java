@@ -1,5 +1,6 @@
 package net.jcm.modulation.attenuation;
 
+import net.jcm.modulation.Modulation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -8,6 +9,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -22,15 +24,17 @@ public class MaterialGrid {
 
     private static ConcurrentHashMap<ResourceKey<Level>, MaterialGrid> grids = new ConcurrentHashMap<>();
 
-    public static MaterialGrid get(ResourceKey<Level> key) {
+    public static MaterialGrid getInstance(ResourceKey<Level> key) {
         return grids.get(key);
     }
 
-    public static void load(ResourceKey<Level> key) {
+    public static void loadLevel(ResourceKey<Level> key) {
+        Modulation.LOGGER.info("Loading MaterialGrid for {}", key);
         grids.put(key, new MaterialGrid());
     }
 
-    public static void unload(ResourceKey<Level> key) {
+    public static void unloadLevel(ResourceKey<Level> key) {
+        Modulation.LOGGER.info("Unloading MaterialGrid for {}", key);
         grids.remove(key);
     }
 
@@ -92,9 +96,17 @@ public class MaterialGrid {
         Set<Long> positions = chunkIndex.remove(chunkKey);
         if (positions != null) positions.forEach(cache::remove);
     }
+
     public void clear() {
         cache.clear();
         chunkIndex.clear();
+    }
+
+    public static void clearAll(){
+        for (MaterialGrid grid :  grids.values()) {
+            grid.clear();
+        }
+        grids.clear();
     }
 
     @Mod.EventBusSubscriber
@@ -102,15 +114,49 @@ public class MaterialGrid {
         @SubscribeEvent
         public static void onLevelLoad(LevelEvent.Load event) {
             if (event.getLevel() instanceof ServerLevel level) {
-                MaterialGrid.load(level.dimension());
+                MaterialGrid.loadLevel(level.dimension());
             }
         }
 
         @SubscribeEvent
         public static void onLevelUnload(LevelEvent.Unload event) {
             if (event.getLevel() instanceof ServerLevel level) {
-                MaterialGrid.unload(level.dimension());
+                MaterialGrid.unloadLevel(level.dimension());
             }
+        }
+
+        @SubscribeEvent
+        public static void onChunkLoad(ChunkEvent.Load event) {
+            if (!(event.getLevel() instanceof ServerLevel level)) return;
+
+            MaterialGrid grid = MaterialGrid.getInstance(level.dimension());
+            if (grid == null) {
+                Modulation.LOGGER.error("WTF Untracked Level while chunk load {}", level.dimension());
+                MaterialGrid.loadLevel(level.dimension());
+                return;
+            }
+
+            ChunkPos pos = event.getChunk().getPos();
+            int minSection = level.getMinSection();
+            int maxSection = level.getMaxSection();
+            for (int s = minSection; s < maxSection; s++) {
+                grid.loadSection(level, pos.x, pos.z, s);
+            }
+        }
+
+        @SubscribeEvent
+        public static void onChunkUnload(ChunkEvent.Unload event) {
+            if (!(event.getLevel() instanceof ServerLevel level)) return;
+
+            MaterialGrid grid = MaterialGrid.getInstance(level.dimension());
+            if (grid == null) {
+                Modulation.LOGGER.error("WTF Untracked Level while chunk unload {}", level.dimension());
+                MaterialGrid.loadLevel(level.dimension());
+                return;
+            }
+
+            ChunkPos pos = event.getChunk().getPos();
+            grid.unloadChunk(pos.x, pos.z);
         }
     }
 

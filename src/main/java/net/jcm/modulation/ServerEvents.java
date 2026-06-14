@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.jcm.modulation.api.AbstractRadioField;
 import net.jcm.modulation.api.signal.SignalSample;
 import net.jcm.modulation.api.tick.IEntityRadioSubscriber;
+import net.jcm.modulation.attenuation.MaterialGrid;
 import net.jcm.modulation.impl.RadioManager;
 import net.jcm.modulation.impl.ThreadedRadioFieldManager;
 import net.minecraft.server.level.ServerLevel;
@@ -43,6 +44,7 @@ public class ServerEvents {
     public static void onServerStopping(ServerStoppingEvent event) {
         RadioManager.shutdown();
         LOGGER.info("[Modulation] RadioManager shut down");
+        MaterialGrid.clearAll();
     }
 
     @SubscribeEvent
@@ -80,8 +82,7 @@ public class ServerEvents {
                         lastMessageTick = field.getTicks();
 
                         Vec3 pos = serverPlayer.position();
-                        SignalSample sample = field.sampleAndMix(pos, 50, 50, null);
-                        if (sample == null) return;
+                        SignalSample sample = field.sampleAndMix(pos, 433_000_000, 200_000, null);                        if (sample == null) return;
 
                         String text = new String(
                                 net.jcm.modulation.util.Utils.hammingDecodeBytes(sample.data()),
