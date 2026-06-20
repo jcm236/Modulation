@@ -35,6 +35,7 @@ public class WorldRadioField extends AbstractRadioField {
 
     @Override
     public void emit(SignalEmission emission) {
+        System.out.println("emitting at" + emission.frequency());
         this.emissions.put(emission, this.getCubeForEmission(emission));
     }
 
@@ -86,6 +87,8 @@ public class WorldRadioField extends AbstractRadioField {
 
             result.add(new EmissionMetadata(emission, rxPowerDbm, distMetres));
         }
+
+        System.out.println(result);
 
         return result;
     }

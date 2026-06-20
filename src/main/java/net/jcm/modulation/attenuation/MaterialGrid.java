@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraftforge.event.level.ChunkEvent;
@@ -68,13 +69,13 @@ public class MaterialGrid {
         }
     }
 
-    public void loadSection(ServerLevel level, int chunkX, int chunkZ, int sectionY) {
-        LevelChunk chunk = level.getChunk(chunkX, chunkZ);
-        LevelChunkSection section = chunk.getSections()[level.getSectionIndex(sectionY << 4)];
+    public void loadSection(ChunkAccess chunk, int sectionY) {
+        LevelChunkSection section = chunk.getSections()[chunk.getSectionIndex(sectionY << 4)];
         if (section == null || section.hasOnlyAir()) return;
 
-        int baseX = chunkX << 4;
-        int baseZ = chunkZ << 4;
+        ChunkPos chunkPos = chunk.getPos();
+        int baseX = chunkPos.x << 4;
+        int baseZ = chunkPos.z << 4;
         int baseY = sectionY << 4;
 
         for (int lx = 0; lx < 16; lx++) {
@@ -91,6 +92,8 @@ public class MaterialGrid {
             }
         }
     }
+
+
     public void unloadChunk(int chunkX, int chunkZ) {
         long chunkKey = ChunkPos.asLong(chunkX, chunkZ);
         Set<Long> positions = chunkIndex.remove(chunkKey);
@@ -133,14 +136,13 @@ public class MaterialGrid {
             if (grid == null) {
                 Modulation.LOGGER.error("WTF Untracked Level while chunk load {}", level.dimension());
                 MaterialGrid.loadLevel(level.dimension());
-                return;
             }
+            grid = MaterialGrid.getInstance(level.dimension());
 
-            ChunkPos pos = event.getChunk().getPos();
             int minSection = level.getMinSection();
             int maxSection = level.getMaxSection();
             for (int s = minSection; s < maxSection; s++) {
-                grid.loadSection(level, pos.x, pos.z, s);
+                grid.loadSection(event.getChunk(), s);
             }
         }
 
@@ -152,8 +154,9 @@ public class MaterialGrid {
             if (grid == null) {
                 Modulation.LOGGER.error("WTF Untracked Level while chunk unload {}", level.dimension());
                 MaterialGrid.loadLevel(level.dimension());
-                return;
             }
+            grid = MaterialGrid.getInstance(level.dimension());
+
 
             ChunkPos pos = event.getChunk().getPos();
             grid.unloadChunk(pos.x, pos.z);
