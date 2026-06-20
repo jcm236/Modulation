@@ -1,10 +1,13 @@
 package net.jcm.modulation.blocks;
 
+import net.jcm.modulation.api.AbstractRadioField;
 import net.jcm.modulation.api.signal.SignalEmission;
+import net.jcm.modulation.api.tick.IBlockRadioTickSubscriber;
 import net.jcm.modulation.impl.RadioManager;
 import net.jcm.modulation.util.Utils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
@@ -59,25 +62,30 @@ public class TransmitBlock extends DirectionalBlock {
     @Override
     public void onPlace(BlockState pState, Level pLevel, BlockPos pPos, BlockState pOldState, boolean pMovedByPiston) {
         super.onPlace(pState, pLevel, pPos, pOldState, pMovedByPiston);
-        pLevel.scheduleTick(pPos, this, 10);
+        if (pLevel instanceof ServerLevel serverLevel) {
+            RadioManager.getInstance().getOrCreateField(serverLevel)
+                    .addBlockSubscriber(pPos, new IBlockRadioTickSubscriber() {
+                        @Override
+                        public void preTick(Vec3i pos, AbstractRadioField field) {}
+
+                        @Override
+                        public void postTick(Vec3i pos, AbstractRadioField field) {
+                            String message = "Meow? Meow Meow Meow!";
+                            byte[] encoded = Utils.hammingEncodeBytes(message.getBytes(StandardCharsets.UTF_8));
+                            field.emit(new SignalEmission(
+                                    pPos.getCenter(), FREQUENCY, encoded, POWER,
+                                    pState.getValue(FACING).step()
+                            ));
+                        }
+                    });
+        }
     }
 
     @Override
-    public void tick(BlockState pState, @NotNull ServerLevel level, @NotNull BlockPos pPos, @NotNull RandomSource pRandom) {
-        String message = "Meow? Meow Meow Meow!";
-        byte[] encoded = Utils.hammingEncodeBytes(message.getBytes(StandardCharsets.UTF_8));
-
-        RadioManager.getInstance()
-                .getOrCreateField(level)
-                .queueEmit(new SignalEmission(
-                        pPos.getCenter(),
-                        FREQUENCY,
-                        encoded,
-                        POWER,
-                        pState.getValue(FACING).step()
-                ));
-
-        level.scheduleTick(pPos, this, TICK_INTERVAL);
-        super.tick(pState, level, pPos, pRandom);
+    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pMovedByPiston) {
+        if (!pState.is(pNewState.getBlock()) && pLevel instanceof ServerLevel serverLevel) {
+            RadioManager.getInstance().getOrCreateField(serverLevel).removeBlockSubscriber(pPos);
+        }
+        super.onRemove(pState, pLevel, pPos, pNewState, pMovedByPiston);
     }
 }

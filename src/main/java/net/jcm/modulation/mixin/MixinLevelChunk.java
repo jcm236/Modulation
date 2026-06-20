@@ -23,9 +23,9 @@ public abstract class MixinLevelChunk {
         MaterialGrid grid = MaterialGrid.getInstance(serverLevel.dimension());
         if (grid == null) {
             Modulation.LOGGER.error("WTF Untracked Level {}", serverLevel.dimension());
-            MaterialGrid.loadLevel(serverLevel.dimension());
+            return;
         }
-        grid = MaterialGrid.getInstance(serverLevel.dimension());
+
         grid.update(pos, state);
     }
 }

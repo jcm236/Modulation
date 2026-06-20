@@ -19,24 +19,28 @@ public class Utils {
     public static SignalSample mix(List<WorldRadioField.EmissionMetadata> emissions, long gameTime, int bandwidth) {
         if (emissions.isEmpty()) return null;
 
-        // Capture effect: strongest signal wins
         WorldRadioField.EmissionMetadata dominant = emissions.get(0);
         for (WorldRadioField.EmissionMetadata e : emissions)
             if (e.getStrengthDbm() > dominant.getStrengthDbm()) dominant = e;
 
         float rxDbm = dominant.getStrengthDbm();
-
         float noiseFloor = thermalNoise(bandwidth) + NOISE_FIGURE_DB;
 
-        if (rxDbm < noiseFloor) return null;
+        // Margin below the noise floor where signal still produces (garbled) output
+        // instead of cutting off immediately. Past this, true silence.
+        float fadeMarginDb = 20f;
+        if (rxDbm < noiseFloor - fadeMarginDb) return null;
 
-        float snrDb = rxDbm - noiseFloor;
+        float snrDb = rxDbm - noiseFloor; // can now go negative, down to -fadeMarginDb
         ByteArrayOutputStream out = noisify(gameTime, snrDb, dominant);
 
         return new SignalSample(out.toByteArray(), rxDbm);
     }
 
     private static @NotNull ByteArrayOutputStream noisify(long gameTime, float snrDb, WorldRadioField.EmissionMetadata dominant) {
+        // At snrDb = 20 -> clean. At snrDb = 0 -> fully noisy.
+        // Below 0 (past the floor, within the fade margin) stays clamped at fully noisy
+        // rather than somehow "worse than random," since 1.0 is already total corruption.
         float noiseScale = Mth.clamp(1.0f - (snrDb / 20f), 0f, 1f);
 
         long seed = gameTime * 31L

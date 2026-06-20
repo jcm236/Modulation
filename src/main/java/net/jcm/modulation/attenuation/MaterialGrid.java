@@ -1,6 +1,7 @@
 package net.jcm.modulation.attenuation;
 
 import net.jcm.modulation.Modulation;
+import net.jcm.modulation.impl.RadioManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -124,6 +125,7 @@ public class MaterialGrid {
         @SubscribeEvent
         public static void onLevelUnload(LevelEvent.Unload event) {
             if (event.getLevel() instanceof ServerLevel level) {
+                if (RadioManager.getInstance() == null) return;
                 MaterialGrid.unloadLevel(level.dimension());
             }
         }
@@ -151,12 +153,7 @@ public class MaterialGrid {
             if (!(event.getLevel() instanceof ServerLevel level)) return;
 
             MaterialGrid grid = MaterialGrid.getInstance(level.dimension());
-            if (grid == null) {
-                Modulation.LOGGER.error("WTF Untracked Level while chunk unload {}", level.dimension());
-                MaterialGrid.loadLevel(level.dimension());
-            }
-            grid = MaterialGrid.getInstance(level.dimension());
-
+            if (grid == null) return;
 
             ChunkPos pos = event.getChunk().getPos();
             grid.unloadChunk(pos.x, pos.z);
